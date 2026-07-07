@@ -117,7 +117,7 @@ local function SmartAH_Sell_Finish(reason)
 end
 
 ---------------------------------------------------------
--- SELL NEXT STACK (FINAL VANILLA 1.12.1 FIX + PAGE GUARD)
+-- SELL NEXT STACK (STACKPRICE UNDERCUT + PAGE GUARD)
 ---------------------------------------------------------
 
 function SmartAH_Sell_NextStack()
@@ -138,12 +138,6 @@ function SmartAH_Sell_NextStack()
     local itemLink   = SmartAH_SellItemLink
     local stackSize  = SmartAH_SellStackSize
     local unitPrice  = SmartAH_SellUnitPrice
-    local stackPrice = unitPrice * stackSize
-
-    dbg("Sell_NextStack: itemLink=" .. tostring(itemLink)
-        .. ", stackSize=" .. tostring(stackSize)
-        .. ", unitPrice=" .. tostring(unitPrice)
-        .. ", stackPrice=" .. tostring(stackPrice))
 
     ---------------------------------------------------------
     -- PAGE GUARD (fixar Blizzard page-nil error)
@@ -154,7 +148,22 @@ function SmartAH_Sell_NextStack()
     end
 
     ---------------------------------------------------------
-    -- Find stack
+    -- RÄKNA UT STACKPRICE (Variant A1)
+    ---------------------------------------------------------
+    local stackPrice = unitPrice * stackSize
+
+    -- Undercut stacken med exakt 1 copper
+    stackPrice = stackPrice - 1
+    if stackPrice < 0 then
+        stackPrice = 0
+    end
+
+    dbg("Sell_NextStack: unitPrice=" .. tostring(unitPrice)
+        .. ", stackSize=" .. tostring(stackSize)
+        .. ", finalStackPrice=" .. tostring(stackPrice))
+
+    ---------------------------------------------------------
+    -- Hitta stack i väskan
     ---------------------------------------------------------
     local bag, slot, count = SmartAH_Sell_FindStack(itemLink, stackSize)
     if not bag then
@@ -166,23 +175,24 @@ function SmartAH_Sell_NextStack()
     dbg("Sell_NextStack: posting from bag=" .. bag .. ", slot=" .. slot)
 
     ---------------------------------------------------------
-    -- Place item in AH slot
+    -- Lägg item i AH-slot
     ---------------------------------------------------------
     PickupContainerItem(bag, slot)
     AuctionsItemButton:Click()
 
     ---------------------------------------------------------
-    -- Set duration to 2 hours
+    -- Sätt duration till 2 timmar
     ---------------------------------------------------------
     AuctionsShortAuctionButton:Click()
     dbg("Sell_NextStack: Duration set to 2h")
 
     ---------------------------------------------------------
-    -- Set BID and BUYOUT (unchanged)
+    -- SPLITTA STACKPRICE TILL GOLD/SILVER/COPPER
+    -- (Lua 5.0-kompatibel, ingen %)
     ---------------------------------------------------------
-    local gold   = math.floor(unitPrice / 10000)
-    local silver = math.floor((unitPrice - (gold * 10000)) / 100)
-    local copper = unitPrice - (gold * 10000) - (silver * 100)
+    local gold   = math.floor(stackPrice / 10000)
+    local silver = math.floor((stackPrice - (gold * 10000)) / 100)
+    local copper = stackPrice - (gold * 10000) - (silver * 100)
 
     StartPriceGold:SetText(gold)
     StartPriceSilver:SetText(silver)
@@ -192,10 +202,10 @@ function SmartAH_Sell_NextStack()
     BuyoutPriceSilver:SetText(silver)
     BuyoutPriceCopper:SetText(copper)
 
-    dbg("Sell_NextStack: Prices set")
+    dbg("Sell_NextStack: Prices set (stackPrice undercut 1c)")
 
     ---------------------------------------------------------
-    -- Post auction
+    -- Posta auktionen
     ---------------------------------------------------------
     AuctionsCreateAuctionButton:Click()
     dbg("Sell_NextStack: Auction posted")
@@ -203,7 +213,7 @@ function SmartAH_Sell_NextStack()
     SmartAH_SellStacksPosted = SmartAH_SellStacksPosted + 1
 
     ---------------------------------------------------------
-    -- Next stack
+    -- Nästa stack
     ---------------------------------------------------------
     SmartAH_Sell_NextStack()
 end
@@ -385,17 +395,20 @@ function SmartAH_Sell_OnScanComplete()
 end
 
 ---------------------------------------------------------
--- PAGE NIL FIX WRAPPER FOR BLIZZARD FUNCTION
+-- PAGE NIL FIX WRAPPER FOR BLIZZARD FUNCTION (Lua 5.0 SAFE)
 ---------------------------------------------------------
 
 local _SmartAH_OrigBrowseUpdate = AuctionFrameBrowse_Update
 
-function AuctionFrameBrowse_Update(...)
+function AuctionFrameBrowse_Update(arg1)
+    -- Guard: ensure page is never nil
     if AuctionFrameBrowse.page == nil then
         dbg("Browse_Update: page was nil, setting to 0")
         AuctionFrameBrowse.page = 0
     end
-    return _SmartAH_OrigBrowseUpdate(...)
+
+    -- Call original Blizzard function
+    return _SmartAH_OrigBrowseUpdate(arg1)
 end
 
 ---------------------------------------------------------
