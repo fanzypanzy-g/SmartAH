@@ -117,7 +117,7 @@ local function SmartAH_Sell_Finish(reason)
 end
 
 ---------------------------------------------------------
--- SELL NEXT STACK (FINAL VANILLA 1.12.1 FIX + UNDERCUT)
+-- SELL NEXT STACK (FINAL VANILLA 1.12.1 FIX + PAGE GUARD)
 ---------------------------------------------------------
 
 function SmartAH_Sell_NextStack()
@@ -146,6 +146,14 @@ function SmartAH_Sell_NextStack()
         .. ", stackPrice=" .. tostring(stackPrice))
 
     ---------------------------------------------------------
+    -- PAGE GUARD (fixar Blizzard page-nil error)
+    ---------------------------------------------------------
+    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
+        dbg("Sell_NextStack: page was nil, setting to 0")
+        AuctionFrameBrowse.page = 0
+    end
+
+    ---------------------------------------------------------
     -- Find stack
     ---------------------------------------------------------
     local bag, slot, count = SmartAH_Sell_FindStack(itemLink, stackSize)
@@ -170,19 +178,11 @@ function SmartAH_Sell_NextStack()
     dbg("Sell_NextStack: Duration set to 2h")
 
     ---------------------------------------------------------
-    -- Set BID and BUYOUT (Undercut 1 copper, Lua 5.0 safe)
+    -- Set BID and BUYOUT (unchanged)
     ---------------------------------------------------------
-
-    -- Undercut lowest price by 1 copper
-    local finalPrice = unitPrice - 1
-    if finalPrice < 0 then
-        finalPrice = 0
-    end
-
-    -- Split into gold/silver/copper without using %
-    local gold   = math.floor(finalPrice / 10000)
-    local silver = math.floor((finalPrice - (gold * 10000)) / 100)
-    local copper = finalPrice - (gold * 10000) - (silver * 100)
+    local gold   = math.floor(unitPrice / 10000)
+    local silver = math.floor((unitPrice - (gold * 10000)) / 100)
+    local copper = unitPrice - (gold * 10000) - (silver * 100)
 
     StartPriceGold:SetText(gold)
     StartPriceSilver:SetText(silver)
@@ -192,7 +192,7 @@ function SmartAH_Sell_NextStack()
     BuyoutPriceSilver:SetText(silver)
     BuyoutPriceCopper:SetText(copper)
 
-    dbg("Sell_NextStack: Prices set (undercut 1c)")
+    dbg("Sell_NextStack: Prices set")
 
     ---------------------------------------------------------
     -- Post auction
@@ -382,6 +382,20 @@ function SmartAH_Sell_OnScanComplete()
     else
         dbg("No AutoPricePending set")
     end
+end
+
+---------------------------------------------------------
+-- PAGE NIL FIX WRAPPER FOR BLIZZARD FUNCTION
+---------------------------------------------------------
+
+local _SmartAH_OrigBrowseUpdate = AuctionFrameBrowse_Update
+
+function AuctionFrameBrowse_Update(...)
+    if AuctionFrameBrowse.page == nil then
+        dbg("Browse_Update: page was nil, setting to 0")
+        AuctionFrameBrowse.page = 0
+    end
+    return _SmartAH_OrigBrowseUpdate(...)
 end
 
 ---------------------------------------------------------
