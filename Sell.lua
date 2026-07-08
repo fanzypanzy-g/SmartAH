@@ -94,8 +94,7 @@ end
 -- SELL ON EVENT (PAGE-NIL FIX FÖR 1.12.1)
 ---------------------------------------------------------
 
-function SmartAH_Sell_OnEvent(event)
-
+function SmartAH_Sell_OnEvent(self, event)
     dbg("Sell_OnEvent: event=" .. tostring(event))
 
     -- När auktionshuset öppnas: se till att Browse.page inte är nil
@@ -103,12 +102,17 @@ function SmartAH_Sell_OnEvent(event)
         if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
             AuctionFrameBrowse.page = 0
             dbg("Sell_OnEvent: AuctionFrameBrowse.page was nil on AH open, set to 0")
+        else
+            dbg("Sell_OnEvent: AuctionFrameBrowse.page already set, value=" .. tostring(AuctionFrameBrowse and AuctionFrameBrowse.page))
         end
+        return
     end
 
     -- När auktionshuset stängs: stoppa säljsessionen
     if event == "AUCTION_HOUSE_CLOSED" then
+        dbg("Sell_OnEvent: AUCTION_HOUSE_CLOSED, stopping sell")
         SmartAH_SellRunning = false
+        return
     end
 end
 
