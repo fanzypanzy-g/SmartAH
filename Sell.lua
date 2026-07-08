@@ -91,6 +91,28 @@ local function SmartAH_Sell_FindStack(itemLink, minCount)
 end
 
 ---------------------------------------------------------
+-- SELL ON EVENT (PAGE-NIL FIX FÖR 1.12.1)
+---------------------------------------------------------
+
+function SmartAH_Sell_OnEvent(event)
+
+    dbg("Sell_OnEvent: event=" .. tostring(event))
+
+    -- När auktionshuset öppnas: se till att Browse.page inte är nil
+    if event == "AUCTION_HOUSE_SHOW" then
+        if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
+            AuctionFrameBrowse.page = 0
+            dbg("Sell_OnEvent: AuctionFrameBrowse.page was nil on AH open, set to 0")
+        end
+    end
+
+    -- När auktionshuset stängs: stoppa säljsessionen
+    if event == "AUCTION_HOUSE_CLOSED" then
+        SmartAH_SellRunning = false
+    end
+end
+
+---------------------------------------------------------
 -- GLOBAL PAGE GUARD (FÖR BLIZZARD BROWSE-FUNKTIONER)
 ---------------------------------------------------------
 
