@@ -91,6 +91,16 @@ local function SmartAH_Sell_FindStack(itemLink, minCount)
 end
 
 ---------------------------------------------------------
+-- GLOBAL PAGE GUARD (FÖR BLIZZARD BROWSE-FUNKTIONER)
+---------------------------------------------------------
+
+function SmartAH_AuctionPageGuard()
+    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
+        AuctionFrameBrowse.page = 0
+    end
+end
+
+---------------------------------------------------------
 -- CORE SELL FLOW
 ---------------------------------------------------------
 
@@ -135,24 +145,14 @@ function SmartAH_Sell_NextStack()
         return
     end
 
+    -- Global guard: se till att page aldrig är nil innan vi rör AH
+    SmartAH_AuctionPageGuard()
+
     local itemLink   = SmartAH_SellItemLink
     local stackSize  = SmartAH_SellStackSize
     local unitPrice  = SmartAH_SellUnitPrice
 
-    ---------------------------------------------------------
-    -- PAGE GUARD (fixar Blizzard page-nil error)
-    ---------------------------------------------------------
-    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
-        dbg("Sell_NextStack: page was nil, setting to 0")
-        AuctionFrameBrowse.page = 0
-    end
-
-    ---------------------------------------------------------
-    -- RÄKNA UT STACKPRICE (Variant A1)
-    ---------------------------------------------------------
     local stackPrice = unitPrice * stackSize
-
-    -- Undercut stacken med exakt 1 copper
     stackPrice = stackPrice - 1
     if stackPrice < 0 then
         stackPrice = 0
@@ -162,9 +162,6 @@ function SmartAH_Sell_NextStack()
         .. ", stackSize=" .. tostring(stackSize)
         .. ", finalStackPrice=" .. tostring(stackPrice))
 
-    ---------------------------------------------------------
-    -- Hitta stack i väskan
-    ---------------------------------------------------------
     local bag, slot, count = SmartAH_Sell_FindStack(itemLink, stackSize)
     if not bag then
         dbg("Sell_NextStack: No stack found")
@@ -174,22 +171,12 @@ function SmartAH_Sell_NextStack()
 
     dbg("Sell_NextStack: posting from bag=" .. bag .. ", slot=" .. slot)
 
-    ---------------------------------------------------------
-    -- Lägg item i AH-slot
-    ---------------------------------------------------------
     PickupContainerItem(bag, slot)
     AuctionsItemButton:Click()
 
-    ---------------------------------------------------------
-    -- Sätt duration till 2 timmar
-    ---------------------------------------------------------
     AuctionsShortAuctionButton:Click()
     dbg("Sell_NextStack: Duration set to 2h")
 
-    ---------------------------------------------------------
-    -- SPLITTA STACKPRICE TILL GOLD/SILVER/COPPER
-    -- (Lua 5.0-kompatibel, ingen %)
-    ---------------------------------------------------------
     local gold   = math.floor(stackPrice / 10000)
     local silver = math.floor((stackPrice - (gold * 10000)) / 100)
     local copper = stackPrice - (gold * 10000) - (silver * 100)
@@ -204,17 +191,11 @@ function SmartAH_Sell_NextStack()
 
     dbg("Sell_NextStack: Prices set (stackPrice undercut 1c)")
 
-    ---------------------------------------------------------
-    -- Posta auktionen
-    ---------------------------------------------------------
     AuctionsCreateAuctionButton:Click()
     dbg("Sell_NextStack: Auction posted")
 
     SmartAH_SellStacksPosted = SmartAH_SellStacksPosted + 1
 
-    ---------------------------------------------------------
-    -- Nästa stack
-    ---------------------------------------------------------
     SmartAH_Sell_NextStack()
 end
 
