@@ -148,52 +148,50 @@ local function SmartAH_Sell_Finish(reason)
     dbg("Sell_Finish: state reset")
 end
 
----------------------------------------------------------
--- SELL NEXT STACK (STACKPRICE UNDERCUT + PAGE GUARD)
----------------------------------------------------------
-
-function SmartAH_Sell_NextStack()
-
+function SmartAH_Sell_NextStack ()
     dbg("Sell_NextStack called")
 
     if not SmartAH_SellRunning then
-        dbg("Sell_NextStack: SellRunning = false, aborting")
+        dbg("Sell_NextStack: SellRunning is false, aborting")
         return
     end
 
     if SmartAH_SellStacksPosted >= SmartAH_SellStackCount then
-        dbg("Sell_NextStack: All stacks posted")
+        dbg("Sell_NextStack: All stacks posted, stopping")
         SmartAH_SellRunning = false
         return
-    end
-
-    -- Page guard
-    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
-        AuctionFrameBrowse.page = 0
     end
 
     local itemLink   = SmartAH_SellItemLink
     local stackSize  = SmartAH_SellStackSize
-    local unitPrice  = SmartAH_SellUnitPrice   -- per-enhet-pris
+    local unitPrice  = SmartAH_SellUnitPrice
 
-    local stackPrice = unitPrice * stackSize
-    stackPrice = stackPrice - 1
-    if stackPrice < 0 then
-        stackPrice = 0
-    end
-
-    dbg("Sell_NextStack: unitPrice=" .. tostring(unitPrice)
+    dbg("Sell_NextStack: itemLink=" .. tostring(itemLink)
         .. ", stackSize=" .. tostring(stackSize)
-        .. ", finalStackPrice=" .. tostring(stackPrice))
+        .. ", unitPrice=" .. tostring(unitPrice))
 
     local bag, slot, count = SmartAH_Sell_FindStack(itemLink, stackSize)
     if not bag then
-        dbg("Sell_NextStack: No stack found")
+        dbg("Sell_NextStack: No stack found in bags")
         SmartAH_SellRunning = false
         return
     end
 
-    dbg("Sell_NextStack: posting from bag=" .. bag .. ", slot=" .. slot)
+    dbg("Sell_NextStack: Found stack in bag=" .. tostring(bag)
+        .. ", slot=" .. tostring(slot)
+        .. ", count=" .. tostring(count))
+
+    -- Beräkna stackpris från unit price
+    local stackPrice = unitPrice * stackSize
+
+    -- Undercut stackpriset med 1 copper
+    local finalPrice = stackPrice - 1
+    if finalPrice < 0 then
+        finalPrice = 0
+    end
+
+    dbg("Sell_NextStack: stackPrice=" .. tostring(stackPrice)
+        .. ", finalPrice=" .. tostring(finalPrice))
 
     PickupContainerItem(bag, slot)
     AuctionsItemButton:Click()
@@ -201,9 +199,9 @@ function SmartAH_Sell_NextStack()
     AuctionsShortAuctionButton:Click()
     dbg("Sell_NextStack: Duration set to 2h")
 
-    local gold   = math.floor(stackPrice / 10000)
-    local silver = math.floor((stackPrice - (gold * 10000)) / 100)
-    local copper = stackPrice - (gold * 10000) - (silver * 100)
+    local gold   = math.floor(finalPrice / 10000)
+    local silver = math.floor((finalPrice - (gold * 10000)) / 100)
+    local copper = finalPrice - (gold * 10000) - (silver * 100)
 
     StartPriceGold:SetText(gold)
     StartPriceSilver:SetText(silver)
@@ -213,12 +211,13 @@ function SmartAH_Sell_NextStack()
     BuyoutPriceSilver:SetText(silver)
     BuyoutPriceCopper:SetText(copper)
 
-    dbg("Sell_NextStack: Prices set (stackPrice undercut 1c)")
+    dbg("Sell_NextStack: Prices set (stack undercut by 1 copper)")
 
     AuctionsCreateAuctionButton:Click()
-    dbg("Sell_NextStack: Auction posted")
+    dbg("Sell_NextStack: Auction created")
 
     SmartAH_SellStacksPosted = SmartAH_SellStacksPosted + 1
+    dbg("Sell_NextStack: SmartAH_SellStacksPosted=" .. tostring(SmartAH_SellStacksPosted))
 
     SmartAH_Sell_NextStack()
 end
@@ -252,7 +251,7 @@ local sellFrame = CreateFrame("Frame")
 sellFrame:RegisterEvent("CHAT_MSG_SYSTEM")
 sellFrame:RegisterEvent("UI_ERROR_MESSAGE")
 
-sellFrame:SetScript("OnEvent", function()
+sellFrame:SetScript("OnEvent", function(self, event, arg1)
     dbg("SellFrame OnEvent: event=" .. tostring(event) .. ", arg1=" .. tostring(arg1))
 
     if not SmartAH_SellRunning then
@@ -268,9 +267,10 @@ sellFrame:SetScript("OnEvent", function()
             dbg("SellFrame: Auction created detected")
             SmartAH_SellPendingAuction = false
             SmartAH_SellStacksPosted   = SmartAH_SellStacksPosted + 1
-            dbg("SellFrame: StacksPosted incremented to " .. tostring(SmartAH_SellStacksPosted))
+            dbg("SellFrame: SmartAH_SellStacksPosted=" .. tostring(SmartAH_SellStacksPosted))
             SmartAH_Sell_NextStack()
         end
+
         return
     end
 
@@ -280,7 +280,8 @@ sellFrame:SetScript("OnEvent", function()
 
         SmartAH_SellPendingAuction = false
         SmartAH_SellStacksPosted   = SmartAH_SellStacksPosted + 1
-        dbg("SellFrame: StacksPosted incremented to " .. tostring(SmartAH_SellStacksPosted) .. " after error")
+        dbg("SellFrame: SmartAH_SellStacksPosted=" .. tostring(SmartAH_SellStacksPosted))
+
         SmartAH_Sell_NextStack()
         return
     end
