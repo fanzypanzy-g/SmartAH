@@ -167,12 +167,14 @@ function SmartAH_Sell_NextStack()
         return
     end
 
-    -- Global guard: se till att page aldrig är nil innan vi rör AH
-    SmartAH_AuctionPageGuard()
+    -- Page guard
+    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
+        AuctionFrameBrowse.page = 0
+    end
 
     local itemLink   = SmartAH_SellItemLink
     local stackSize  = SmartAH_SellStackSize
-    local unitPrice  = SmartAH_SellUnitPrice
+    local unitPrice  = SmartAH_SellUnitPrice   -- per-enhet-pris
 
     local stackPrice = unitPrice * stackSize
     stackPrice = stackPrice - 1
@@ -222,39 +224,23 @@ function SmartAH_Sell_NextStack()
 end
 
 ---------------------------------------------------------
--- PUBLIC ENTRY POINT
+-- START SELL SEQUENCE
 ---------------------------------------------------------
 
 function SmartAH_Sell_Start(itemLink, stackSize, stackCount, unitPrice)
-    dbg("Sell_Start called with itemLink=" .. tostring(itemLink) ..
-        ", stackSize=" .. tostring(stackSize) ..
-        ", stackCount=" .. tostring(stackCount) ..
-        ", unitPrice=" .. tostring(unitPrice))
 
-    if SmartAH_SellRunning then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff8800SmartAH:|r Sell already running.")
-        dbg("Sell_Start: already running, aborting")
-        return
-    end
+    dbg("Sell_Start: itemLink=" .. tostring(itemLink)
+        .. ", stackSize=" .. tostring(stackSize)
+        .. ", stackCount=" .. tostring(stackCount)
+        .. ", unitPrice=" .. tostring(unitPrice))
 
-    local totalCount = SmartAH_Sell_GetInventoryCount(itemLink)
-    dbg("Sell_Start: totalCount in bags = " .. tostring(totalCount))
+    SmartAH_SellItemLink     = itemLink
+    SmartAH_SellStackSize    = stackSize or 1
+    SmartAH_SellStackCount   = stackCount or 1
+    SmartAH_SellUnitPrice    = unitPrice or 0   -- per-enhet-pris från AutoPrice
+    SmartAH_SellStacksPosted = 0
+    SmartAH_SellRunning      = true
 
-    if totalCount <= 0 then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff8800SmartAH:|r No items in bags.")
-        dbg("Sell_Start: no items in bags, aborting")
-        return
-    end
-
-    SmartAH_SellRunning        = true
-    SmartAH_SellPendingAuction = false
-    SmartAH_SellItemLink       = itemLink
-    SmartAH_SellStackSize      = stackSize
-    SmartAH_SellStackCount     = stackCount
-    SmartAH_SellUnitPrice      = unitPrice
-    SmartAH_SellStacksPosted   = 0
-
-    dbg("Sell_Start: state initialized, starting first stack")
     SmartAH_Sell_NextStack()
 end
 
@@ -441,7 +427,9 @@ SmartAH_InitPageGuard()
 local SmartAH_EventFrame = CreateFrame("Frame")
 SmartAH_EventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
 SmartAH_EventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
-SmartAH_EventFrame:SetScript("OnEvent", SmartAH_Sell_OnEvent)
+SmartAH_EventFrame:SetScript("OnEvent", function(_, event)
+    SmartAH_Sell_OnEvent(event)
+end)
 
 ---------------------------------------------------------
 -- SLASH COMMAND
