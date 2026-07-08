@@ -435,6 +435,15 @@ end
 SmartAH_InitPageGuard()
 
 ---------------------------------------------------------
+-- REGISTER EVENTS FOR SELL MODULE
+---------------------------------------------------------
+
+local SmartAH_EventFrame = CreateFrame("Frame")
+SmartAH_EventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
+SmartAH_EventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
+SmartAH_EventFrame:SetScript("OnEvent", SmartAH_Sell_OnEvent)
+
+---------------------------------------------------------
 -- SLASH COMMAND
 ---------------------------------------------------------
 
