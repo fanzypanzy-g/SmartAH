@@ -97,20 +97,20 @@ end
 function SmartAH_Sell_OnEvent(self, event)
     dbg("Sell_OnEvent: event=" .. tostring(event))
 
-    -- När auktionshuset öppnas: se till att Browse.page inte är nil
+    -- AH öppnas → page får ALDRIG vara nil
     if event == "AUCTION_HOUSE_SHOW" then
         if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
             AuctionFrameBrowse.page = 0
-            dbg("Sell_OnEvent: AuctionFrameBrowse.page was nil on AH open, set to 0")
+            dbg("Sell_OnEvent: AuctionFrameBrowse.page was nil, set to 0")
         else
-            dbg("Sell_OnEvent: AuctionFrameBrowse.page already set, value=" .. tostring(AuctionFrameBrowse and AuctionFrameBrowse.page))
+            dbg("Sell_OnEvent: AuctionFrameBrowse.page already set: " .. tostring(AuctionFrameBrowse.page))
         end
         return
     end
 
-    -- När auktionshuset stängs: stoppa säljsessionen
+    -- AH stängs → stoppa säljet
     if event == "AUCTION_HOUSE_CLOSED" then
-        dbg("Sell_OnEvent: AUCTION_HOUSE_CLOSED, stopping sell")
+        dbg("Sell_OnEvent: AH closed, stopping sell")
         SmartAH_SellRunning = false
         return
     end
@@ -289,6 +289,15 @@ sellFrame:SetScript("OnEvent", function(self, event, arg1)
         SmartAH_Sell_NextStack()
         return
     end
+end)
+
+-- Correct event frame for AH show/close
+local SmartAH_AHEventFrame = CreateFrame("Frame")
+SmartAH_AHEventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
+SmartAH_AHEventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
+
+SmartAH_AHEventFrame:SetScript("OnEvent", function(self, event, ...)
+    SmartAH_Sell_OnEvent(self, event)
 end)
 
 ---------------------------------------------------------
