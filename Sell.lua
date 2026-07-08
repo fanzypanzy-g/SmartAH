@@ -400,18 +400,20 @@ end
 ---------------------------------------------------------
 -- PAGE NIL FIX WRAPPER FOR BLIZZARD FUNCTION (Lua 5.0 SAFE)
 ---------------------------------------------------------
+-- SmartAH: safe hook for Blizzard's AuctionFrameBrowse_Update to prevent nil 'page' errors
+local SmartAH_Orig_AuctionFrameBrowse_Update = AuctionFrameBrowse_Update
 
-local _SmartAH_OrigBrowseUpdate = AuctionFrameBrowse_Update
-
-function AuctionFrameBrowse_Update(arg1)
-    -- Guard: ensure page is never nil
-    if AuctionFrameBrowse.page == nil then
-        dbg("Browse_Update: page was nil, setting to 0")
+function AuctionFrameBrowse_Update()
+    -- Ensure AuctionFrameBrowse.page is never nil before Blizzard code uses it
+    if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
         AuctionFrameBrowse.page = 0
+        dbg("SmartAH: AuctionFrameBrowse.page was nil, set to 0 before Browse_Update")
     end
 
-    -- Call original Blizzard function
-    return _SmartAH_OrigBrowseUpdate(arg1)
+    -- Call the original Blizzard implementation
+    if SmartAH_Orig_AuctionFrameBrowse_Update then
+        SmartAH_Orig_AuctionFrameBrowse_Update()
+    end
 end
 
 ---------------------------------------------------------
