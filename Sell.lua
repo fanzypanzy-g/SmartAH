@@ -393,6 +393,26 @@ function AuctionFrameBrowse_Update(arg1)
 end
 
 ---------------------------------------------------------
+-- GLOBAL PAGE GUARD (PERMANENT FIX FÖR BLIZZARD PAGE-NIL)
+---------------------------------------------------------
+
+function SmartAH_InitPageGuard()
+    if SmartAH_PageGuardFrame then
+        return
+    end
+
+    SmartAH_PageGuardFrame = CreateFrame("Frame")
+    SmartAH_PageGuardFrame:SetScript("OnUpdate", function()
+        if AuctionFrameBrowse and AuctionFrameBrowse.page == nil then
+            AuctionFrameBrowse.page = 0
+        end
+    end)
+end
+
+-- Kör guarden direkt när addon laddas
+SmartAH_InitPageGuard()
+
+---------------------------------------------------------
 -- SLASH COMMAND
 ---------------------------------------------------------
 
