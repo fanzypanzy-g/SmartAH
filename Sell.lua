@@ -152,7 +152,7 @@ local function SmartAH_Sell_Finish(reason)
     dbg("Sell_Finish: state reset")
 end
 
-function SmartAH_Sell_NextStack ()
+function SmartAH_Sell_NextStack()
     dbg("Sell_NextStack called")
 
     if not SmartAH_SellRunning then
@@ -166,9 +166,9 @@ function SmartAH_Sell_NextStack ()
         return
     end
 
-    local itemLink   = SmartAH_SellItemLink
-    local stackSize  = SmartAH_SellStackSize
-    local unitPrice  = SmartAH_SellUnitPrice
+    local itemLink  = SmartAH_SellItemLink
+    local stackSize = SmartAH_SellStackSize
+    local unitPrice = SmartAH_SellUnitPrice  -- per enhet
 
     dbg("Sell_NextStack: itemLink=" .. tostring(itemLink)
         .. ", stackSize=" .. tostring(stackSize)
